@@ -8,10 +8,16 @@ const demoAccounts = import.meta.env.DEV ? [
   { label: 'Driver', email: 'driver@rydo.com', password: 'driver123' },
   { label: 'Admin', email: 'admin@rydo.com', password: 'admin123' }
 ] : [];
+const accountTypes = [
+  { role: 'user', label: 'User' },
+  { role: 'driver', label: 'Driver' },
+  { role: 'admin', label: 'Admin' }
+];
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [expectedRole, setExpectedRole] = useState('user');
   const [error, setError] = useState('');
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -20,17 +26,18 @@ const Login = () => {
     e.preventDefault();
     setError('');
     try {
-      await login(email, password);
+      await login(email, password, expectedRole);
       const storedUser = JSON.parse(localStorage.getItem('user'));
       navigate(storedUser?.role === 'driver' ? '/driver' : storedUser?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
-      setError('Invalid email or password');
+      setError(err.response?.data?.message || 'Invalid email or password');
     }
   };
 
   const fillDemoAccount = (account) => {
     setEmail(account.email);
     setPassword(account.password);
+    setExpectedRole(account.label.toLowerCase());
   };
 
   return (
@@ -38,6 +45,20 @@ const Login = () => {
       <div className="auth-card glass">
         <h2>Welcome Back</h2>
         {!import.meta.env.DEV && <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '1rem' }}>Demo accounts are for local development. Create a production account with Sign Up.</p>}
+        <div role="group" aria-label="Account type" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
+          {accountTypes.map((accountType) => (
+            <button
+              key={accountType.role}
+              type="button"
+              className={`btn ${expectedRole === accountType.role ? '' : 'btn-secondary'}`}
+              aria-pressed={expectedRole === accountType.role}
+              onClick={() => setExpectedRole(accountType.role)}
+              style={{ width: '100%', justifyContent: 'center', padding: '10px 8px' }}
+            >
+              {accountType.label}
+            </button>
+          ))}
+        </div>
         {import.meta.env.DEV && <div style={{ marginBottom: '1rem', display: 'grid', gap: '0.5rem' }}>
           {demoAccounts.map((account) => (
             <button

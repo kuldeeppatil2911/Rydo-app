@@ -617,6 +617,10 @@ MONGODB_URI=mongodb://localhost:27017/rydo
 # JWT secret (at least 32 characters in production)
 JWT_SECRET=replace_with_a_random_secret_at_least_32_characters_long
 
+# Private codes for staff account registration
+DRIVER_SIGNUP_CODE=replace_with_a_long_random_driver_code
+ADMIN_SIGNUP_CODE=replace_with_a_long_random_admin_code
+
 # Email through Brevo's HTTPS API (optional)
 EMAIL_USER=your_verified_sender_email
 BREVO_API_KEY=your_brevo_api_key
@@ -631,6 +635,8 @@ FRONTEND_URL=https://your-frontend.example
 |----------|----------|---------|-------------|
 | `MONGODB_URI` | ✅ in production | in-memory in development | Persistent MongoDB connection string |
 | `JWT_SECRET` | ✅ | — | At least 32 characters; signs authentication tokens and fare quotes |
+| `DRIVER_SIGNUP_CODE` | For driver signup | — | Private invite code required to register a driver and vehicle profile |
+| `ADMIN_SIGNUP_CODE` | For admin signup | — | Private invite code required to register an administrator |
 | `EMAIL_USER` | For email alerts | — | Sender email verified with Brevo |
 | `BREVO_API_KEY` | For email alerts | — | Brevo API key; email is sent over HTTPS |
 | `STRIPE_SECRET_KEY` | For online payments | — | Stripe secret key; use test mode while validating |
@@ -644,6 +650,8 @@ For production, configure a persistent MongoDB service and a strong JWT secret b
 The root `render.yaml` deploys the built React app and Express API as one web service. Push the repository to a Git provider, create a Render Blueprint from that repository, and provide the `MONGODB_URI` value from a persistent MongoDB Atlas cluster. Render generates `JWT_SECRET` and supplies the public app URL for Stripe redirects.
 
 To enable online payments, add the rotated Stripe test or live secret key in Render's environment settings, then configure a Stripe webhook destination at `https://<your-render-host>/api/payment/webhook` for the four events listed above. Save the generated `whsec_...` value as `STRIPE_WEBHOOK_SECRET` in Render and redeploy. Email alerts use Brevo's HTTPS API: verify `EMAIL_USER` as a sender in Brevo and add `BREVO_API_KEY` to Render. Render Free blocks outbound SMTP ports, so Gmail SMTP credentials cannot send mail from this service. SMS via Twilio is optional.
+
+To register production drivers or admins, configure long random `DRIVER_SIGNUP_CODE` and `ADMIN_SIGNUP_CODE` values in Render. Share each code only with the intended staff member; public signup without a code can create only a regular user. Driver signup also requires a vehicle and plate. Rotating an invite code does not affect existing accounts.
 
 Never deploy the local `backend/.env` file. Rotate any credentials exposed outside your secret manager before creating the public service.
 
