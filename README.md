@@ -643,7 +643,7 @@ For production, configure a persistent MongoDB service and a strong JWT secret b
 
 The root `render.yaml` deploys the built React app and Express API as one web service. Push the repository to a Git provider, create a Render Blueprint from that repository, and provide the `MONGODB_URI` value from a persistent MongoDB Atlas cluster. Render generates `JWT_SECRET` and supplies the public app URL for Stripe redirects.
 
-To enable online payments, add the rotated Stripe test or live secret key in Render's environment settings, then configure a Stripe webhook destination at `https://<your-render-host>/api/payment/webhook` for the four events listed above. Save the generated `whsec_...` value as `STRIPE_WEBHOOK_SECRET` in Render and redeploy. Email and Twilio variables are optional and should only be added after rotating the credentials previously shared in chat.
+To enable online payments, add the rotated Stripe test or live secret key in Render's environment settings, then configure a Stripe webhook destination at `https://<your-render-host>/api/payment/webhook` for the four events listed above. Save the generated `whsec_...` value as `STRIPE_WEBHOOK_SECRET` in Render and redeploy. Email alerts are optional; SMS via Twilio is intentionally disabled for this deployment to avoid paid messaging charges.
 
 Never deploy the local `backend/.env` file. Rotate any credentials exposed outside your secret manager before creating the public service.
 
