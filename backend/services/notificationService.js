@@ -98,8 +98,10 @@ exports.sendEmergencyAlert = async (user, booking, force = false) => {
   }
 
   let emailSent = false;
+  let reason;
   if (contactEmail && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
     console.warn('Gmail SMTP is not configured; emergency email was not delivered.');
+    reason = 'email_not_configured';
   } else if (contactEmail) {
     try {
       const transporter = nodemailer.createTransport({
@@ -141,9 +143,10 @@ exports.sendEmergencyAlert = async (user, booking, force = false) => {
       console.log('Emergency alert sent via Email.');
     } catch (error) {
       console.error('Emergency email error:', error.message);
+      reason = 'email_delivery_failed';
     }
   }
 
   const smsSent = await sendTwilioAlert(user, booking);
-  return { emailSent, smsSent };
+  return { emailSent, smsSent, ...(reason ? { reason } : {}) };
 };

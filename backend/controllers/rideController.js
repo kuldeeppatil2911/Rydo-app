@@ -159,16 +159,19 @@ exports.sendEmergencyAlert = async (req, res) => {
 
     const user = await User.findById(req.user.id);
     const delivery = await notificationService.sendEmergencyAlert(user, booking, true);
-    if (!delivery.emailSent) {
+    if (!delivery.emailSent && !delivery.smsSent) {
       return res.status(502).json({
         message: delivery.reason === 'no_contact'
           ? 'Add an emergency contact email in your profile first.'
-          : 'Emergency email could not be delivered. Check the saved contact email and email service configuration.',
+          : delivery.reason === 'email_not_configured'
+            ? 'Emergency email service is not configured. Add EMAIL_USER and EMAIL_PASS to the Render environment.'
+            : 'Emergency alert could not be delivered. Check the saved contact details and notification service configuration.',
         delivery
       });
     }
 
-    res.json({ message: 'Emergency email sent to your saved contact.', delivery });
+    const channels = [delivery.emailSent && 'email', delivery.smsSent && 'SMS'].filter(Boolean);
+    res.json({ message: `Emergency alert sent via ${channels.join(' and ')}.`, delivery });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Emergency alert could not be processed' });

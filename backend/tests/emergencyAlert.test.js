@@ -29,7 +29,11 @@ test('reports undelivered channels when alert providers are not configured', asy
       otp: '1234'
     }, true);
 
-    assert.deepEqual(delivery, { emailSent: false, smsSent: false });
+    assert.deepEqual(delivery, {
+      emailSent: false,
+      smsSent: false,
+      reason: 'email_not_configured'
+    });
   } finally {
     providerKeys.forEach((key) => {
       if (originalValues[key] === undefined) delete process.env[key];
