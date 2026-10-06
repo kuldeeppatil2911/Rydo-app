@@ -1,6 +1,20 @@
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 
 const defaultCenter = [22.3072, 73.1812];
+
+function FitRouteBounds({ pickupLat, pickupLng, dropoffLat, dropoffLng }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.fitBounds([[pickupLat, pickupLng], [dropoffLat, dropoffLng]], {
+      padding: [40, 40],
+      maxZoom: 13
+    });
+  }, [dropoffLat, dropoffLng, map, pickupLat, pickupLng]);
+
+  return null;
+}
 
 function LocationMap({ pickup, dropoff }) {
   const hasRoute = pickup?.lat != null && pickup?.lng != null && dropoff?.lat != null && dropoff?.lng != null;
@@ -20,6 +34,14 @@ function LocationMap({ pickup, dropoff }) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      {hasRoute && (
+        <FitRouteBounds
+          pickupLat={pickup.lat}
+          pickupLng={pickup.lng}
+          dropoffLat={dropoff.lat}
+          dropoffLng={dropoff.lng}
+        />
+      )}
 
       <Marker position={pickupPosition}>
         <Popup>{hasRoute ? 'Pickup Location' : 'Default Location: Vadodara'}</Popup>
