@@ -651,7 +651,7 @@ The root `render.yaml` deploys the built React app and Express API as one web se
 
 To enable online payments, add the rotated Stripe test or live secret key in Render's environment settings, then configure a Stripe webhook destination at `https://<your-render-host>/api/payment/webhook` for the four events listed above. Save the generated `whsec_...` value as `STRIPE_WEBHOOK_SECRET` in Render and redeploy. Email alerts use Brevo's HTTPS API: verify `EMAIL_USER` as a sender in Brevo and add `BREVO_API_KEY` to Render. Render Free blocks outbound SMTP ports, so Gmail SMTP credentials cannot send mail from this service. SMS via Twilio is optional.
 
-To register production drivers or admins, configure long random `DRIVER_SIGNUP_CODE` and `ADMIN_SIGNUP_CODE` values in Render. Share each code only with the intended staff member; public signup without a code can create only a regular user. Driver signup also requires a vehicle and plate. Rotating an invite code does not affect existing accounts.
+Public signup creates regular user accounts only. Driver and admin accounts must be provisioned by an authorized operator through `/api/auth/register` using the corresponding long random `DRIVER_SIGNUP_CODE` or `ADMIN_SIGNUP_CODE` configured in Render. Driver provisioning also requires vehicle and plate details. Never publish or share these codes broadly; rotating them does not affect existing accounts.
 
 Never deploy the local `backend/.env` file. Rotate any credentials exposed outside your secret manager before creating the public service.
 
