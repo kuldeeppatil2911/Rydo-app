@@ -23,8 +23,18 @@ const ProtectedRoute = ({ children }) => {
 
 const RoleRoute = ({ allowedRoles, children }) => {
   const { user } = React.useContext(AuthContext);
-  if (!allowedRoles.includes(user?.role)) return <Navigate to="/dashboard" replace />;
+  if (!allowedRoles.includes(user?.role)) {
+    const roleHome = user?.role === 'driver' ? '/driver' : user?.role === 'admin' ? '/admin' : '/dashboard';
+    return <Navigate to={roleHome} replace />;
+  }
   return children;
+};
+
+const HomeRedirect = () => {
+  const { user, loading } = React.useContext(AuthContext);
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  return <Navigate to={user.role === 'driver' ? '/driver' : user.role === 'admin' ? '/admin' : '/dashboard'} replace />;
 };
 
 function App() {
@@ -34,15 +44,15 @@ function App() {
         <Navbar />
         <main className="main-content">
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" />} />
+            <Route path="/" element={<HomeRedirect />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><RoleRoute allowedRoles={['user']}><Dashboard /></RoleRoute></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/book" element={<ProtectedRoute><RideBooking /></ProtectedRoute>} />
+            <Route path="/book" element={<ProtectedRoute><RoleRoute allowedRoles={['user']}><RideBooking /></RoleRoute></ProtectedRoute>} />
             <Route path="/track/:id" element={<ProtectedRoute><RideTracking /></ProtectedRoute>} />
-            <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-            <Route path="/receipt/:id" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
+            <Route path="/checkout" element={<ProtectedRoute><RoleRoute allowedRoles={['user']}><Checkout /></RoleRoute></ProtectedRoute>} />
+            <Route path="/receipt/:id" element={<ProtectedRoute><RoleRoute allowedRoles={['user']}><Receipt /></RoleRoute></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><RoleRoute allowedRoles={['admin']}><AdminDashboard /></RoleRoute></ProtectedRoute>} />
             <Route path="/driver" element={<ProtectedRoute><RoleRoute allowedRoles={['driver']}><DriverDashboard /></RoleRoute></ProtectedRoute>} />
           </Routes>

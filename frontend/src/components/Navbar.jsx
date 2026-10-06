@@ -44,25 +44,27 @@ const Navbar = () => {
       <div className="nav-links" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
         {user ? (
           <>
-            <Link to="/dashboard" style={navLinkStyle('/dashboard')}>
-              <LayoutDashboard size={16} /> Dashboard
-            </Link>
-            <Link to="/book" style={navLinkStyle('/book')}>
-              <Map size={16} /> Book Ride
-            </Link>
-            <Link to="/profile" style={navLinkStyle('/profile')}>
-              <User size={16} /> Profile
-            </Link>
+            {user.role === 'user' && <>
+              <Link to="/dashboard" style={navLinkStyle('/dashboard')}>
+                <LayoutDashboard size={16} /> Dashboard
+              </Link>
+              <Link to="/book" style={navLinkStyle('/book')}>
+                <Map size={16} /> Book Ride
+              </Link>
+            </>}
             {user.role === 'driver' && (
               <Link to="/driver" style={navLinkStyle('/driver')} title="Driver Portal">
-                <Car size={16} /> Driver
+                <Car size={16} /> Driver Dashboard
               </Link>
             )}
             {user.role === 'admin' && (
               <Link to="/admin" style={navLinkStyle('/admin')} title="Admin Portal">
-                <Shield size={16} /> Admin
+                <Shield size={16} /> Admin Dashboard
               </Link>
             )}
+            <Link to="/profile" style={navLinkStyle('/profile')}>
+              <User size={16} /> Profile
+            </Link>
             <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem', width: 'auto' }}>
               <LogOut size={15} /> Logout
             </button>
