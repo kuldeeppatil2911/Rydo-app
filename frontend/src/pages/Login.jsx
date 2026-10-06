@@ -3,6 +3,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { LogIn } from 'lucide-react';
 
+const demoAccounts = import.meta.env.DEV ? [
+  { label: 'User', email: 'user@rydo.com', password: 'user123' },
+  { label: 'Driver', email: 'driver@rydo.com', password: 'driver123' },
+  { label: 'Admin', email: 'admin@rydo.com', password: 'admin123' }
+] : [];
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,16 +21,35 @@ const Login = () => {
     setError('');
     try {
       await login(email, password);
-      navigate('/dashboard');
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      navigate(storedUser?.role === 'driver' ? '/driver' : storedUser?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
       setError('Invalid email or password');
     }
+  };
+
+  const fillDemoAccount = (account) => {
+    setEmail(account.email);
+    setPassword(account.password);
   };
 
   return (
     <div className="auth-container">
       <div className="auth-card glass">
         <h2>Welcome Back</h2>
+        {import.meta.env.DEV && <div style={{ marginBottom: '1rem', display: 'grid', gap: '0.5rem' }}>
+          {demoAccounts.map((account) => (
+            <button
+              key={account.label}
+              type="button"
+              onClick={() => fillDemoAccount(account)}
+              className="btn btn-secondary"
+              style={{ width: '100%', justifyContent: 'center', fontSize: '0.85rem', padding: '10px 12px' }}
+            >
+              Use {account.label} demo account
+            </button>
+          ))}
+        </div>}
         {error && <div style={{ color: '#ef4444', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">

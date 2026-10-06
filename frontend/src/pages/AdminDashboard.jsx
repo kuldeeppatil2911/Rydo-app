@@ -39,10 +39,24 @@ const AdminDashboard = () => {
           </div>
         </div>
         <div className="glass" style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <Car size={40} color="var(--secondary)" />
+          <div>
+            <h3 style={{ margin: 0, fontSize: '2rem' }}>{stats?.totalDrivers}</h3>
+            <p style={{ color: 'var(--text-muted)' }}>Driver Profiles</p>
+          </div>
+        </div>
+        <div className="glass" style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <MapIcon size={40} color="var(--secondary)" />
           <div>
             <h3 style={{ margin: 0, fontSize: '2rem' }}>{stats?.activeRides}</h3>
             <p style={{ color: 'var(--text-muted)' }}>Active Rides</p>
+          </div>
+        </div>
+        <div className="glass" style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <CreditCard size={40} color="var(--primary)" />
+          <div>
+            <h3 style={{ margin: 0, fontSize: '2rem' }}>{stats?.totalPayments}</h3>
+            <p style={{ color: 'var(--text-muted)' }}>Paid Transactions</p>
           </div>
         </div>
       </div>
@@ -68,6 +82,7 @@ const AdminDashboard = () => {
               <th style={{ padding: '1rem' }}>Route</th>
               <th style={{ padding: '1rem' }}>Status</th>
               <th style={{ padding: '1rem' }}>Driver</th>
+              <th style={{ padding: '1rem' }}>Fare / Payment</th>
             </tr>
           </thead>
           <tbody>
@@ -76,7 +91,16 @@ const AdminDashboard = () => {
                 <td style={{ padding: '1rem' }}>{b.user?.name}</td>
                 <td style={{ padding: '1rem' }}>{b.pickup} &rarr; {b.dropoff}</td>
                 <td style={{ padding: '1rem', color: b.status === 'Completed' ? 'var(--secondary)' : 'var(--primary)' }}>{b.status}</td>
-                <td style={{ padding: '1rem' }}>{b.driver?.name || 'Unassigned'}</td>
+                <td style={{ padding: '1rem' }}>
+                  {b.driver ? (
+                    <>
+                      <strong>{b.driver.name}</strong>
+                      <div>{b.driver.vehicle} · {b.driver.plate}</div>
+                      <div>{b.driver.user?.phone || 'Phone unavailable'}</div>
+                    </>
+                  ) : 'Unassigned'}
+                </td>
+                <td style={{ padding: '1rem' }}>{b.fare || 'N/A'} / {b.paymentMode || 'N/A'}</td>
               </tr>
             ))}
           </tbody>

@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { CreditCard, CheckCircle } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 
 const Checkout = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   // Payload passed from RideBooking
   const payload = location.state?.payload;
@@ -17,34 +16,23 @@ const Checkout = () => {
   const handlePayment = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
-    // Simulate payment processing delay
-    setTimeout(async () => {
-      try {
-        const res = await axios.post('/ride/book', payload);
-        setSuccess(true);
-        setTimeout(() => {
-          navigate(`/track/${res.data.booking._id}`);
-        }, 1500);
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
-        alert('Payment failed, please try again.');
-      }
-    }, 2000);
+    try {
+      const bookingResponse = await axios.post('/ride/book', payload);
+      const sessionResponse = await axios.post('/payment/checkout', {
+        bookingId: bookingResponse.data.booking._id,
+        method: payload.paymentMode
+      });
+
+      if (!sessionResponse.data?.url) throw new Error('Stripe did not return a checkout URL');
+      window.location.href = sessionResponse.data.url;
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || err.message || 'Payment failed, please try again.');
+      setLoading(false);
+    }
   };
-
-  if (success) {
-    return (
-      <div className="auth-container" style={{ textAlign: 'center' }}>
-        <div className="auth-card glass">
-          <CheckCircle size={64} color="var(--secondary)" style={{ margin: '0 auto 1rem' }} />
-          <h2 style={{ color: 'var(--secondary)' }}>Payment Successful!</h2>
-          <p>Redirecting to tracking...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="auth-container">
@@ -54,27 +42,13 @@ const Checkout = () => {
           Amount to pay: <span style={{ color: 'white', fontWeight: 'bold', fontSize: '1.2rem' }}>{payload.fare}</span>
         </p>
         
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+          Payment details are entered securely on Stripe. Rydo does not collect or store your card details.
+        </p>
+        {error && <p role="alert" style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</p>}
         <form onSubmit={handlePayment}>
-          <div className="form-group">
-            <label>Cardholder Name</label>
-            <input type="text" className="glass-input" required placeholder="John Doe" />
-          </div>
-          <div className="form-group">
-            <label>Card Number</label>
-            <input type="text" className="glass-input" required placeholder="XXXX XXXX XXXX XXXX" maxLength="19" />
-          </div>
-          <div className="grid-2">
-            <div className="form-group">
-              <label>Expiry Date</label>
-              <input type="text" className="glass-input" required placeholder="MM/YY" maxLength="5" />
-            </div>
-            <div className="form-group">
-              <label>CVV</label>
-              <input type="password" className="glass-input" required placeholder="123" maxLength="3" />
-            </div>
-          </div>
           <button type="submit" className="btn" style={{ marginTop: '1rem' }} disabled={loading}>
-            <CreditCard size={20} /> {loading ? 'Processing...' : `Pay ${payload.fare}`}
+            <CreditCard size={20} /> {loading ? 'Connecting to Stripe...' : `Continue to Stripe · ${payload.fare}`}
           </button>
         </form>
       </div>

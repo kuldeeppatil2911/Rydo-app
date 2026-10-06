@@ -11,12 +11,19 @@ import RideTracking from './pages/RideTracking';
 import AdminDashboard from './pages/AdminDashboard';
 import DriverDashboard from './pages/DriverDashboard';
 import Checkout from './pages/Checkout';
+import Receipt from './pages/Receipt';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = React.useContext(AuthContext);
   if (loading) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" />;
+  return children;
+};
+
+const RoleRoute = ({ allowedRoles, children }) => {
+  const { user } = React.useContext(AuthContext);
+  if (!allowedRoles.includes(user?.role)) return <Navigate to="/dashboard" replace />;
   return children;
 };
 
@@ -35,8 +42,9 @@ function App() {
             <Route path="/book" element={<ProtectedRoute><RideBooking /></ProtectedRoute>} />
             <Route path="/track/:id" element={<ProtectedRoute><RideTracking /></ProtectedRoute>} />
             <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/driver" element={<ProtectedRoute><DriverDashboard /></ProtectedRoute>} />
+            <Route path="/receipt/:id" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><RoleRoute allowedRoles={['admin']}><AdminDashboard /></RoleRoute></ProtectedRoute>} />
+            <Route path="/driver" element={<ProtectedRoute><RoleRoute allowedRoles={['driver']}><DriverDashboard /></RoleRoute></ProtectedRoute>} />
           </Routes>
         </main>
       </div>

@@ -14,12 +14,10 @@ const Dashboard = () => {
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
 
   useEffect(() => {
-    // We don't have a "my rides" endpoint yet, so we'll use mock data
-    // In a real app: axios.get('/ride/history')
-    setTimeout(() => {
-      setRecentRides([]);
-      setLoadingRides(false);
-    }, 800);
+    axios.get('/ride/history/me')
+      .then((res) => setRecentRides(res.data.slice(0, 5)))
+      .catch((error) => console.error('Failed to load ride history', error))
+      .finally(() => setLoadingRides(false));
   }, []);
 
   const rideTypes = [
@@ -88,18 +86,20 @@ const Dashboard = () => {
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Emergency contacts, live OTP, and ride-sharing alerts.</p>
         </div>
 
-        <div className="glass" style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <div style={{ background: 'rgba(79, 70, 229, 0.15)', borderRadius: '12px', padding: '10px', display: 'inline-flex' }}>
-              <TrendingUp size={24} color="var(--primary)" />
+        {user?.role === 'admin' && (
+          <div className="glass" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <div style={{ background: 'rgba(79, 70, 229, 0.15)', borderRadius: '12px', padding: '10px', display: 'inline-flex' }}>
+                <TrendingUp size={24} color="var(--primary)" />
+              </div>
+              <Link to="/admin" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', textDecoration: 'none' }}>
+                View <ChevronRight size={14} />
+              </Link>
             </div>
-            <Link to="/admin" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', textDecoration: 'none' }}>
-              View <ChevronRight size={14} />
-            </Link>
+            <h3 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>Admin Panel</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>View real-time stats, revenue charts, and all bookings.</p>
           </div>
-          <h3 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>Admin Panel</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>View real-time stats, revenue charts, and all bookings.</p>
-        </div>
+        )}
       </div>
 
       {/* Recent Rides */}
@@ -122,8 +122,9 @@ const Dashboard = () => {
           </div>
         ) : (
           recentRides.map(ride => (
-            <div key={ride._id} style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-              <p>{ride.pickup} → {ride.dropoff}</p>
+            <div key={ride._id} style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
+              <div><p>{ride.pickup} → {ride.dropoff}</p><small style={{ color: 'var(--text-muted)' }}>{ride.fare} · {ride.createdAt ? new Date(ride.createdAt).toLocaleDateString() : ''}</small></div>
+              <Link to={`/track/${ride._id}`} className="btn btn-secondary" style={{ width: 'auto', padding: '8px 12px', textDecoration: 'none' }}>Track</Link>
             </div>
           ))
         )}

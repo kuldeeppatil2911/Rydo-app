@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const User = require('../models/User');
 const Driver = require('../models/Driver');
+const Payment = require('../models/Payment');
 
 exports.getStats = async (req, res) => {
   try {
@@ -9,22 +10,18 @@ exports.getStats = async (req, res) => {
     const totalDrivers = await Driver.countDocuments();
     const activeRides = await Booking.countDocuments({ status: { $in: ['Assigned', 'Arriving', 'In Progress'] } });
     
-    // Mock daily revenue for chart
-    const revenueData = [
-      { name: 'Mon', revenue: 400 },
-      { name: 'Tue', revenue: 300 },
-      { name: 'Wed', revenue: 550 },
-      { name: 'Thu', revenue: 700 },
-      { name: 'Fri', revenue: 600 },
-      { name: 'Sat', revenue: 900 },
-      { name: 'Sun', revenue: 850 },
-    ];
+    const revenueData = await Payment.aggregate([
+      { $match: { status: 'Paid' } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$paidAt' } }, revenue: { $sum: { $toDouble: { $replaceAll: { input: '$amount', find: '₹', replacement: '' } } } } } },
+      { $project: { _id: 0, name: '$_id', revenue: 1 } }
+    ]);
 
     res.json({
       totalBookings,
       totalUsers,
       totalDrivers,
       activeRides,
+      totalPayments: await Payment.countDocuments({ status: 'Paid' }),
       revenueData
     });
   } catch (err) {
@@ -35,7 +32,10 @@ exports.getStats = async (req, res) => {
 
 exports.getAllBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find().populate('user', 'name email').populate('driver', 'name').sort({ createdAt: -1 });
+    const bookings = await Booking.find()
+      .populate('user', 'name email')
+      .populate({ path: 'driver', select: 'name vehicle plate rating user', populate: { path: 'user', select: 'phone' } })
+      .sort({ createdAt: -1 });
     res.json(bookings);
   } catch (err) {
     console.error(err.message);

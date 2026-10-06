@@ -13,15 +13,16 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         try {
-          // If we had a /me route we'd hit it here. For now just set from localStorage.
-          const storedUser = JSON.parse(localStorage.getItem('user'));
-          if (storedUser) {
-            setUser(storedUser);
-          }
+          const res = await axios.get('/profile');
+          const storedUser = JSON.parse(localStorage.getItem('user')) || {};
+          const validUser = { ...storedUser, ...res.data };
+          localStorage.setItem('user', JSON.stringify(validUser));
+          setUser(validUser);
         } catch (error) {
-          console.error('Invalid token', error);
+          console.error('Session expired', error);
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          delete axios.defaults.headers.common['Authorization'];
         }
       }
       setLoading(false);

@@ -1,20 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import { ShieldCheck, CheckCircle, Car } from 'lucide-react';
+import { ShieldCheck, Car, PhoneCall, CheckCircle2 } from 'lucide-react';
+import LocationMap from '../components/LocationMap';
+import { AuthContext } from '../context/AuthContext';
 
 const RideTracking = () => {
   const { id } = useParams();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [alertLoading, setAlertLoading] = useState(false);
+  const previousStatus = useRef(null);
+  const { user } = useContext(AuthContext);
 
-  // Mock coordinates for demonstration since we aren't using a real geocoder
-  const defaultCenter = [19.0760, 72.8777]; 
-  const [routeCoords, setRouteCoords] = useState([
-    [19.0760, 72.8777],
-    [19.0900, 72.8900]
-  ]);
+  const [routeCoords, setRouteCoords] = useState({ pickup: null, dropoff: null });
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     // Request notification permission on mount
@@ -28,7 +28,7 @@ const RideTracking = () => {
         const newBooking = res.data;
         
         // Check for status change to trigger notification
-        if (booking && booking.status !== newBooking.status) {
+        if (previousStatus.current && previousStatus.current !== newBooking.status) {
           if (Notification.permission === 'granted') {
             new Notification('Ride Update', {
               body: `Your ride status is now: ${newBooking.status}`,
@@ -37,14 +37,10 @@ const RideTracking = () => {
           }
         }
 
+        previousStatus.current = newBooking.status;
         setBooking(newBooking);
         
-        // Slightly randomizing coords just for visual effect on reload
-        const offset = Math.random() * 0.01;
-        setRouteCoords([
-          [19.0760 + offset, 72.8777 - offset],
-          [19.0900 - offset, 72.8900 + offset]
-        ]);
+        setRouteCoords({ pickup: newBooking.pickupCoords, dropoff: newBooking.dropoffCoords });
 
         setLoading(false);
       } catch (err) {
@@ -57,7 +53,29 @@ const RideTracking = () => {
     // Polling to simulate status updates from driver app
     const interval = setInterval(fetchRide, 5000);
     return () => clearInterval(interval);
-  }, [id, booking]);
+  }, [id]);
+
+  const updateStatus = async (status) => {
+    try {
+      const res = await axios.patch(`/ride/${id}/status`, { status });
+      setBooking((current) => ({ ...current, ...res.data }));
+      setMessage(`Ride status updated to ${status}.`);
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Status update failed.');
+    }
+  };
+
+  const sendEmergencyAlert = async () => {
+    setAlertLoading(true);
+    try {
+      const response = await axios.post(`/ride/${id}/emergency-alert`);
+      setMessage(response.data.message);
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Emergency alert could not be processed.');
+    } finally {
+      setAlertLoading(false);
+    }
+  };
 
   if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}>Loading ride details...</div>;
   if (!booking) return <div style={{ textAlign: 'center', padding: '3rem' }}>Ride not found.</div>;
@@ -92,26 +110,31 @@ const RideTracking = () => {
             <p style={{ margin: 0 }}><strong>OTP to share with driver:</strong> <span style={{ fontSize: '1.5rem', fontWeight: 'bold', letterSpacing: '2px', color: 'var(--secondary)' }}>{booking.otp}</span></p>
           </div>
           <p style={{ marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            If emergency alerts are enabled, your emergency contact has been notified with these details.
+            Emergency alerts use your saved contact details when alert settings and a delivery service are configured.
           </p>
+          {user?.role === 'user' && !['Payment Pending', 'Payment Failed', 'Completed', 'Cancelled'].includes(booking.status) && (
+            <button className="btn btn-secondary" onClick={sendEmergencyAlert} disabled={alertLoading} style={{ marginTop: '1rem' }}>
+              <PhoneCall size={17} /> {alertLoading ? 'Sending alert...' : 'Send Emergency Alert'}
+            </button>
+          )}
+          {message && <p style={{ color: 'var(--secondary)', marginTop: '0.75rem' }}>{message}</p>}
         </div>
+        {(user?.role === 'driver' || user?.role === 'admin') && booking.driver && !['Completed', 'Cancelled'].includes(booking.status) && (
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+              {booking.status === 'Assigned' && <button className="btn btn-secondary" onClick={() => updateStatus('Arriving')}><CheckCircle2 size={17} /> Driver Arriving</button>}
+              {booking.status === 'Arriving' && <button className="btn" onClick={() => updateStatus('In Progress')}><Car size={17} /> Start Ride</button>}
+              {booking.status === 'In Progress' && <button className="btn btn-success" onClick={() => updateStatus('Completed')}>Complete Ride</button>}
+          </div>
+        )}
+        {user?.role === 'user' && ['Searching', 'Assigned'].includes(booking.status) && (
+          <button className="btn" onClick={() => updateStatus('Cancelled')} style={{ marginTop: '1rem' }}>Cancel Ride</button>
+        )}
       </div>
 
       {/* Map Simulation */}
       <div className="glass" style={{ overflow: 'hidden', height: '500px' }}>
-        <MapContainer center={defaultCenter} zoom={13} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <Marker position={routeCoords[0]}>
-            <Popup>Pickup Location: {booking.pickup}</Popup>
-          </Marker>
-          <Marker position={routeCoords[1]}>
-            <Popup>Dropoff Location: {booking.dropoff}</Popup>
-          </Marker>
-          <Polyline pathOptions={{ color: 'var(--primary)', weight: 4 }} positions={routeCoords} />
-        </MapContainer>
+        <LocationMap pickup={routeCoords.pickup} dropoff={routeCoords.dropoff} />
+        {!routeCoords.pickup?.lat && <p style={{ padding: '0.75rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Map coordinates are unavailable for this ride, so Vadodara is shown as the default location.</p>}
       </div>
     </div>
   );

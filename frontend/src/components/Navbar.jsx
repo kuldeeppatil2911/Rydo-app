@@ -53,12 +53,16 @@ const Navbar = () => {
             <Link to="/profile" style={navLinkStyle('/profile')}>
               <User size={16} /> Profile
             </Link>
-            <Link to="/driver" style={navLinkStyle('/driver')} title="Driver Portal">
-              <Car size={16} /> Driver
-            </Link>
-            <Link to="/admin" style={navLinkStyle('/admin')} title="Admin Portal">
-              <Shield size={16} /> Admin
-            </Link>
+            {user.role === 'driver' && (
+              <Link to="/driver" style={navLinkStyle('/driver')} title="Driver Portal">
+                <Car size={16} /> Driver
+              </Link>
+            )}
+            {user.role === 'admin' && (
+              <Link to="/admin" style={navLinkStyle('/admin')} title="Admin Portal">
+                <Shield size={16} /> Admin
+              </Link>
+            )}
             <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem', width: 'auto' }}>
               <LogOut size={15} /> Logout
             </button>

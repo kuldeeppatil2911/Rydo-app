@@ -573,7 +573,7 @@ You need **two terminal windows** — one for the backend and one for the fronte
 **Terminal 1 — Backend:**
 ```bash
 cd rydo-app/backend
-node server.js
+npm start
 # Output:
 # Server running on port 5000
 # MongoDB connected successfully at mongodb://127.0.0.1:XXXX/
@@ -582,15 +582,25 @@ node server.js
 **Terminal 2 — Frontend:**
 ```bash
 cd rydo-app/frontend
-npm run dev
+npx vite --host 127.0.0.1 --port 5173
 # Output:
 # VITE v8.x  ready in ~500ms
-# ➜  Local:   http://localhost:5173/
+# ➜  Local:   http://127.0.0.1:5173/
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173) in your browser.
 
-> **No database setup required!** The backend uses `mongodb-memory-server` to spin up an in-memory MongoDB instance automatically.
+### Demo Accounts
+
+The backend seeds these accounts when using the default in-memory database:
+
+| Role | Email | Password |
+|------|-------|----------|
+| User | user@rydo.com | user123 |
+| Driver | driver@rydo.com | driver123 |
+| Admin | admin@rydo.com | admin123 |
+
+> The in-memory database is for local development only. Production startup requires a persistent MongoDB connection and does not seed demo accounts.
 
 ---
 
@@ -601,23 +611,41 @@ Create a `.env` file inside the `backend/` directory. A template is provided at 
 ```env
 # backend/.env
 
-# MongoDB URI (optional — if omitted, uses in-memory MongoDB)
+# MongoDB URI (required in production; optional for local development)
 MONGODB_URI=mongodb://localhost:27017/rydo
 
-# JWT Secret (required)
-JWT_SECRET=your_super_secret_jwt_key_here
+# JWT secret (at least 32 characters in production)
+JWT_SECRET=replace_with_a_random_secret_at_least_32_characters_long
 
 # Email (for emergency alert notifications — optional)
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
+
+# Stripe Checkout (required for online payments)
+STRIPE_SECRET_KEY=sk_test_replace_me
+STRIPE_WEBHOOK_SECRET=whsec_replace_me
+FRONTEND_URL=https://your-frontend.example
 ```
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `MONGODB_URI` | ❌ | in-memory | MongoDB connection string |
-| `JWT_SECRET` | ✅ | — | Secret key for signing JWTs |
+| `MONGODB_URI` | ✅ in production | in-memory in development | Persistent MongoDB connection string |
+| `JWT_SECRET` | ✅ | — | At least 32 characters; signs authentication tokens and fare quotes |
 | `EMAIL_USER` | ❌ | — | Gmail address for notifications |
 | `EMAIL_PASS` | ❌ | — | Gmail app password |
+| `STRIPE_SECRET_KEY` | For online payments | — | Stripe secret key; use test mode while validating |
+| `STRIPE_WEBHOOK_SECRET` | For online payments | — | Signing secret for `/api/payment/webhook`; payment state stays pending without it |
+| `FRONTEND_URL` | For hosted Stripe redirects | localhost | Public frontend origin |
+
+For production, configure a persistent MongoDB service and a strong JWT secret before starting the backend. Configure a Stripe webhook at `<backend-origin>/api/payment/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `checkout.session.expired`. Do not deploy with demo credentials or an in-memory database.
+
+### Deploy to Render
+
+The root `render.yaml` deploys the built React app and Express API as one web service. Push the repository to a Git provider, create a Render Blueprint from that repository, and provide the `MONGODB_URI` value from a persistent MongoDB Atlas cluster. Render generates `JWT_SECRET` and supplies the public app URL for Stripe redirects.
+
+To enable online payments, add the rotated Stripe test or live secret key in Render's environment settings, then configure a Stripe webhook destination at `https://<your-render-host>/api/payment/webhook` for the four events listed above. Save the generated `whsec_...` value as `STRIPE_WEBHOOK_SECRET` in Render and redeploy. Email and Twilio variables are optional and should only be added after rotating the credentials previously shared in chat.
+
+Never deploy the local `backend/.env` file. Rotate any credentials exposed outside your secret manager before creating the public service.
 
 ---
 
@@ -632,7 +660,7 @@ EMAIL_PASS=your_app_password
 | `/signup` | Signup | Public | New account registration |
 | `/dashboard` | Dashboard | 🔒 Auth | Home page with ride types & quick actions |
 | `/book` | Ride Booking | 🔒 Auth | Book a new ride |
-| `/checkout` | Checkout | 🔒 Auth | Mock card payment form |
+| `/checkout` | Checkout | 🔒 Auth | Stripe-hosted card/UPI checkout |
 | `/track/:id` | Ride Tracking | 🔒 Auth | Live ride status + map |
 | `/profile` | Profile | 🔒 Auth | User info & safety settings |
 | `/admin` | Admin Dashboard | 🔒 Auth | Stats, charts, bookings overview |
