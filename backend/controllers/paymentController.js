@@ -39,10 +39,10 @@ exports.createPayment = async (req, res) => {
         method: 'Cash',
         status: 'Pending',
         transactionId: `CASH-${Date.now()}`,
-      receiptId: `RYDO-${Date.now().toString().slice(-8)}`,
+        receiptId: `RYDO-${Date.now().toString().slice(-8)}`,
         paidAt: null
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
     );
 
     res.status(201).json({ payment, gateway: 'cash' });
@@ -108,7 +108,7 @@ exports.createCheckoutSession = async (req, res) => {
         receiptId: `RYDO-${Date.now().toString().slice(-8)}`,
         paidAt: null
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
     );
 
     res.status(200).json({ url: session.url, payment, gateway: 'stripe' });
@@ -146,12 +146,12 @@ exports.handleStripeWebhook = async (req, res) => {
       const payment = await Payment.findOneAndUpdate(
         { transactionId: session.id },
         { status: 'Paid', paidAt: new Date() },
-        { new: true }
+        { returnDocument: 'after' }
       );
       if (payment) await Booking.updateOne({ _id: payment.booking, status: 'Payment Pending' }, { status: 'Searching' });
     }
   } else if (event.type === 'checkout.session.async_payment_failed' || event.type === 'checkout.session.expired') {
-    const payment = await Payment.findOneAndUpdate({ transactionId: session.id }, { status: 'Failed', paidAt: null }, { new: true });
+    const payment = await Payment.findOneAndUpdate({ transactionId: session.id }, { status: 'Failed', paidAt: null }, { returnDocument: 'after' });
     if (payment) await Booking.updateOne({ _id: payment.booking, status: 'Payment Pending' }, { status: 'Payment Failed' });
   }
 

@@ -37,6 +37,7 @@ const Login = () => {
     <div className="auth-container">
       <div className="auth-card glass">
         <h2>Welcome Back</h2>
+        {!import.meta.env.DEV && <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '1rem' }}>Demo accounts are for local development. Create a production account with Sign Up.</p>}
         {import.meta.env.DEV && <div style={{ marginBottom: '1rem', display: 'grid', gap: '0.5rem' }}>
           {demoAccounts.map((account) => (
             <button
