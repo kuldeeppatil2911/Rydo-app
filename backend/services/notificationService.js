@@ -1,9 +1,17 @@
 const nodemailer = require('nodemailer');
 const twilio = require('twilio');
+const { demoAccounts } = require('../demoUsers');
+
+const demoAccountEmails = new Set(demoAccounts.map(({ email }) => email.toLowerCase()));
 
 exports.sendRideAssignedEmail = async (user, booking, driver) => {
   if (!user?.email) {
     console.log('No user email available for ride-assigned notification.');
+    return;
+  }
+
+  if (demoAccountEmails.has(user.email.toLowerCase())) {
+    console.log('Skipping ride-assigned email for demo account.');
     return;
   }
 
