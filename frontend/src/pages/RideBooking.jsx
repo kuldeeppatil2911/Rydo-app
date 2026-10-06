@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { LocateFixed, Navigation } from 'lucide-react';
 import { geocodeLocation } from '../utils/geocoding';
 
 const RideBooking = () => {
+  const [searchParams] = useSearchParams();
+  const requestedRideType = searchParams.get('type');
   const [formData, setFormData] = useState({
     pickup: '',
     dropoff: '',
     pickupCoords: null,
     dropoffCoords: null,
-    rideType: 'Standard',
+    rideType: ['Standard', 'Premium', 'Carpool'].includes(requestedRideType) ? requestedRideType : 'Standard',
     paymentMode: 'Cash',
     tripMode: 'Now'
   });
