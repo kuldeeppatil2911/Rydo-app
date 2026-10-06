@@ -164,7 +164,7 @@ exports.sendEmergencyAlert = async (req, res) => {
         message: delivery.reason === 'no_contact'
           ? 'Add an emergency contact email in your profile first.'
           : delivery.reason === 'email_not_configured'
-            ? 'Emergency email service is not configured. Add EMAIL_USER and EMAIL_PASS to the Render environment.'
+            ? 'Emergency email provider is not configured. Add BREVO_API_KEY and verify EMAIL_USER with Brevo.'
             : 'Emergency alert could not be delivered. Check the saved contact details and notification service configuration.',
         delivery
       });

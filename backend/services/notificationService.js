@@ -1,8 +1,32 @@
-const nodemailer = require('nodemailer');
 const twilio = require('twilio');
 const { demoAccounts } = require('../demoUsers');
 
 const demoAccountEmails = new Set(demoAccounts.map(({ email }) => email.toLowerCase()));
+const brevoEmailApiUrl = 'https://api.brevo.com/v3/smtp/email';
+
+const sendEmail = async (to, subject, text) => {
+  if (!process.env.BREVO_API_KEY || !process.env.EMAIL_USER) {
+    return { sent: false, reason: 'email_not_configured' };
+  }
+
+  const response = await fetch(brevoEmailApiUrl, {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      sender: { email: process.env.EMAIL_USER, name: 'Rydo' },
+      to: [{ email: to }],
+      subject,
+      textContent: text
+    })
+  });
+
+  if (!response.ok) throw new Error(`Brevo email API returned HTTP ${response.status}`);
+  return { sent: true };
+};
 
 exports.sendRideAssignedEmail = async (user, booking, driver) => {
   if (!user?.email) {
@@ -15,25 +39,11 @@ exports.sendRideAssignedEmail = async (user, booking, driver) => {
     return;
   }
 
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn('Gmail SMTP is not configured; ride-assigned email was not delivered.');
-    return;
-  }
-
   try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: 'Your Rydo driver is on the way',
-      text: `Hello ${user.name},\n\n` +
+    const delivery = await sendEmail(
+      user.email,
+      'Your Rydo driver is on the way',
+      `Hello ${user.name},\n\n` +
         `Your ride has been assigned.\n\n` +
         `Driver: ${driver?.name || 'Driver'}\n` +
         `Phone: ${driver?.phone || 'N/A'}\n` +
@@ -43,10 +53,10 @@ exports.sendRideAssignedEmail = async (user, booking, driver) => {
         `Dropoff: ${booking.dropoff}\n` +
         `OTP: ${booking.otp}\n\n` +
         `Thank you for riding with Rydo.`
-    };
+    );
 
-    await transporter.sendMail(mailOptions);
-    console.log('Ride-assigned email sent successfully.');
+    if (delivery.sent) console.log('Ride-assigned email sent successfully via Brevo.');
+    else console.warn('Brevo email API is not configured; ride-assigned email was not delivered.');
   } catch (error) {
     console.error('Ride-assigned email error:', error.message);
   }
@@ -99,25 +109,14 @@ exports.sendEmergencyAlert = async (user, booking, force = false) => {
 
   let emailSent = false;
   let reason;
-  if (contactEmail && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
-    console.warn('Gmail SMTP is not configured; emergency email was not delivered.');
-    reason = 'email_not_configured';
-  } else if (contactEmail) {
+  if (contactEmail) {
     try {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
-        }
-      });
       const driver = booking.driver && typeof booking.driver === 'object' ? booking.driver : null;
 
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: contactEmail,
-        subject: `RIDE ALERT: ${user.name} has started a ride`,
-        text: `Hello ${user.emergencyContact.name || 'Emergency Contact'},\n\n` +
+      const delivery = await sendEmail(
+        contactEmail,
+        `RIDE ALERT: ${user.name} has started a ride`,
+        `Hello ${user.emergencyContact.name || 'Emergency Contact'},\n\n` +
               `${user.name} has started a ride via Rydo.\n\n` +
               `Ride ID: ${booking._id}\n` +
               `Ride status: ${booking.status}\n` +
@@ -136,11 +135,14 @@ exports.sendEmergencyAlert = async (user, booking, force = false) => {
               `OTP for ride: ${booking.otp}\n` +
               `Estimated Fare: ${booking.fare}\n\n` +
               `Stay safe!`
-      };
+      );
 
-      await transporter.sendMail(mailOptions);
-      emailSent = true;
-      console.log('Emergency alert sent via Email.');
+      emailSent = delivery.sent;
+      if (emailSent) console.log('Emergency alert sent via Brevo.');
+      else {
+        console.warn('Brevo email API is not configured; emergency email was not delivered.');
+        reason = delivery.reason;
+      }
     } catch (error) {
       console.error('Emergency email error:', error.message);
       reason = 'email_delivery_failed';
