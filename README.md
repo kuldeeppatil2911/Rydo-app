@@ -651,7 +651,7 @@ The root `render.yaml` deploys the built React app and Express API as one web se
 
 To enable online payments, add the rotated Stripe test or live secret key in Render's environment settings, then configure a Stripe webhook destination at `https://<your-render-host>/api/payment/webhook` for the four events listed above. Save the generated `whsec_...` value as `STRIPE_WEBHOOK_SECRET` in Render and redeploy. Email alerts use Brevo's HTTPS API: verify `EMAIL_USER` as a sender in Brevo and add `BREVO_API_KEY` to Render. Render Free blocks outbound SMTP ports, so Gmail SMTP credentials cannot send mail from this service. SMS via Twilio is optional.
 
-Public signup creates regular user accounts only. Driver and admin accounts must be provisioned by an authorized operator through `/api/auth/register` using the corresponding long random `DRIVER_SIGNUP_CODE` or `ADMIN_SIGNUP_CODE` configured in Render. Driver provisioning also requires vehicle and plate details. Never publish or share these codes broadly; rotating them does not affect existing accounts.
+The signup page offers User, Driver, and Admin account types. User registration is open. Driver and Admin registration require the matching `DRIVER_SIGNUP_CODE` or `ADMIN_SIGNUP_CODE` configured in the backend environment; Driver registration also requires vehicle and plate details. Set both codes to long, random values in Render before inviting staff, and never publish or share them broadly. Rotating a code does not affect existing accounts. After registration, each role is sent to its matching dashboard.
 
 Never deploy the local `backend/.env` file. Rotate any credentials exposed outside your secret manager before creating the public service.
 
@@ -682,9 +682,9 @@ Never deploy the local `backend/.env` file. Rotate any credentials exposed outsi
 |---------|----------|--------|
 | Real GPS geocoding (OpenCage / Google Maps API) | High | 📋 Planned |
 | WebSocket real-time updates (Socket.io) | High | 📋 Planned |
-| Role-based access control (User / Driver / Admin) | High | 📋 Planned |
+| Role-based access control (User / Driver / Admin) | High | ✅ Implemented |
 | Stripe / Razorpay real payment integration | High | 📋 Planned |
-| Driver registration portal | Medium | 📋 Planned |
+| Invite-gated Driver/Admin signup | Medium | ✅ Implemented |
 | Ride history page for users | Medium | 📋 Planned |
 | Push notifications (PWA) | Medium | 📋 Planned |
 | Star rating for drivers | Medium | 📋 Planned |
