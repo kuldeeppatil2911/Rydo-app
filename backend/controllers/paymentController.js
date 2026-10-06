@@ -1,4 +1,18 @@
-const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
+const resolveStripeConfig = () => {
+  const secretKey = (process.env.STRIPE_SECRET_KEY || '').trim();
+  const webhookSecret = (process.env.STRIPE_WEBHOOK_SECRET || '').trim();
+
+  const validSecretKey = secretKey.startsWith('sk_') ? secretKey : null;
+  const validWebhookSecret = webhookSecret.startsWith('whsec_') ? webhookSecret : null;
+
+  return {
+    stripeSecretKey: validSecretKey || (webhookSecret.startsWith('sk_') ? webhookSecret : null),
+    webhookSecret: validWebhookSecret || (secretKey.startsWith('whsec_') ? secretKey : null)
+  };
+};
+
+const { stripeSecretKey, webhookSecret } = resolveStripeConfig();
+const stripe = stripeSecretKey ? require('stripe')(stripeSecretKey) : null;
 const Payment = require('../models/Payment');
 const Booking = require('../models/Booking');
 
@@ -40,14 +54,18 @@ exports.createPayment = async (req, res) => {
 
 exports.createCheckoutSession = async (req, res) => {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
+    const resolvedConfig = resolveStripeConfig();
+    const activeStripeKey = resolvedConfig.stripeSecretKey;
+    const activeWebhookSecret = resolvedConfig.webhookSecret;
+
+    if (!activeStripeKey) {
       return res.status(400).json({ message: 'Stripe is not configured. Add STRIPE_SECRET_KEY to enable real payments.' });
     }
 
     const { bookingId } = req.body;
     const booking = await Booking.findOne({ _id: bookingId, user: req.user.id });
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
-    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    if (!activeWebhookSecret) {
       await Booking.updateOne({ _id: booking._id, status: 'Payment Pending' }, { status: 'Payment Failed' });
       return res.status(503).json({ message: 'Stripe webhook signing is not configured. Online checkout is unavailable.' });
     }
@@ -107,13 +125,17 @@ exports.getPayment = async (req, res) => {
 };
 
 exports.handleStripeWebhook = async (req, res) => {
-  if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+  const resolvedConfig = resolveStripeConfig();
+  const activeStripeKey = resolvedConfig.stripeSecretKey;
+  const activeWebhookSecret = resolvedConfig.webhookSecret;
+
+  if (!stripe || !activeStripeKey || !activeWebhookSecret) {
     return res.status(503).json({ message: 'Stripe webhook is not configured' });
   }
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], process.env.STRIPE_WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], activeWebhookSecret);
   } catch (error) {
     return res.status(400).send(`Webhook signature verification failed: ${error.message}`);
   }
